@@ -3,68 +3,148 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public Rigidbody2D rb; // Rigidbody 2d component of the character
-    public float minJumpForce = 5f; // the weakest jump possible, current placeholder number, will likely be adjusted when level design proper begins to work better with it
-    public float maxJumpForce = 15f; // the strongest jump possible, current placeholder number, will likely be adjusted when level design proper begins to work better with it
-    public float chargeTime = 0f; // the ability to charge the jump, jump can be done with an immediate press, if they don't charge it they get the default speed
-    public float maxChargeTime = 3f; // the amount of time it will take to charge the jump, current placeholder of 3 seconds but could raise to 5 depending on how it plays
-    private bool isCharging = false; // this will be what detects if the player is charging the jump or not to trigger the charge times 
-    private bool isGrounded = false; // this is to detect if the player is currently standing on the ground or not, this is to prevent the player from being able to infinitely spam jumps in the air
+    public Rigidbody2D rb; // Rigidbody 2D component of the character
+    public float minJumpForce = 5f; // The weakest jump possible
+    public float maxJumpForce = 15f; // The strongest jump possible
+    public float chargeTime = 0f; // The ability to charge the jump
+    public float maxChargeTime = 3f; // The amount of time it will take to charge the jump
+    private bool isCharging = false; // Whether the player is charging the jump
+    private bool isGrounded = false; // Whether the player is standing on the ground
+    public GameObject aimArrowPrefab; // Reference to the aiming arrow prefab
+    private GameObject currentAimArrow; // Reference to the currently active aiming arrow
+    public float distanceFromPlayer = 1f; // Distance to spawn the aiming indicator in front of the player
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>(); // Assign Rigidbody2D component
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded) // this is for the minimum jump speed by not charging the jump
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded) // Start charging the jump
         {
             chargeTime = 0f;
             isCharging = true;
+
+            // Create the aiming indicator
+            CreateAimArrow();
         }
 
-        if (Input.GetKey(KeyCode.Space) && isCharging && isGrounded) // this is to detect how long the jump will be charged for and to clamp it aka locking it to the max time it can be charged for
+        if (Input.GetKey(KeyCode.Space) && isCharging && isGrounded) // Charge the jump
         {
             chargeTime += Time.deltaTime;
             chargeTime = Mathf.Clamp(chargeTime, 0f, maxChargeTime);
+
+            // Update the aiming indicator's position and rotation
+            UpdateAimArrow();
         }
 
-        if (Input.GetKeyUp(KeyCode.Space) && isCharging && isGrounded) // this is to trigger the jump when the space key is released
+        if (Input.GetKeyUp(KeyCode.Space) && isCharging && isGrounded) // Release the jump
         {
             Jump();
             isCharging = false;
+
+            // Destroy the aiming indicator
+            DestroyAimArrow();
         }
     }
 
+    // Method to calculate the direction of the mouse relative to the player
+    Vector2 mouseDirection()
+    {
+        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition); // Get mouse position in world space as Vector2
+        Vector2 playerPos = transform.position; // Get player position as Vector2
+        Vector2 direction = (mousePos - playerPos).normalized; // Normalize to get only the direction
+        return direction;
+    }
+
+    // Method to handle the jump logic
     void Jump()
     {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        Vector2 direction = (mousePos - transform.position).normalized;
-        // this is so the jump will track the mouse position and launch the player where the mouse is
+        Vector2 direction = mouseDirection(); // Use the mouseDirection method to get the direction
 
         float chargePercent = chargeTime / maxChargeTime;
         float jumpForce = Mathf.Lerp(minJumpForce, maxJumpForce, chargePercent);
-        // this will figure out the strength of the jump based on how long it's been charged compared to the max charge time and the jump forces attached to the time
+        // Calculate the jump force based on charge time
 
         rb.linearVelocity = Vector2.zero; // Reset velocity before applying the jump force
         rb.AddForce(direction * jumpForce, ForceMode2D.Impulse);
     }
 
-    void OnCollisionEnter2D(Collision2D collision) // Fixed typo in method name
+    // Detect when the player lands on the ground
+    void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Ground"))
         {
-            isGrounded = true; // this is to check if the player is standing on collision that is marked as the ground so they can activate a jump
+            isGrounded = true; // Player is on the ground
         }
     }
 
-    void OnCollisionExit2D(Collision2D collision) // Fixed typo in method name
+    // Detect when the player leaves the ground
+    void OnCollisionExit2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Ground"))
         {
-            isGrounded = false; // this is to check if the player is not standing on collision marked as ground that they cannot activate a jump
+            isGrounded = false; // Player is not on the ground
+        }
+    }
+
+    // Create the aiming arrow
+    void CreateAimArrow()
+    {
+        // Destroy the current indicator if it exists
+        if (currentAimArrow != null)
+        {
+            Destroy(currentAimArrow);
+        }
+
+        // Create a new aiming indicator
+        if (aimArrowPrefab != null)
+        {
+            currentAimArrow = Instantiate(aimArrowPrefab, transform.position, Quaternion.identity);
+            currentAimArrow.transform.SetParent(transform); // Attach to the player
+        }
+    }
+
+    // Update the aiming arrow's position and rotation
+    void UpdateAimArrow()
+    {
+        if (currentAimArrow != null)
+        {
+            Vector2 predictedLandingPosition = PredictLandingPosition(); // Get the predicted landing position
+            Vector2 direction = (predictedLandingPosition - (Vector2)transform.position).normalized; // Direction toward the landing position
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg; // Calculate the angle in degrees
+
+            // Position the indicator at the predicted landing position
+            currentAimArrow.transform.position = predictedLandingPosition;
+
+            // Rotate the indicator to face the predicted landing position
+            currentAimArrow.transform.eulerAngles = new Vector3(0, 0, angle);
+        }
+    }
+
+    // Predict the landing position based on jump force and trajectory
+    Vector2 PredictLandingPosition()
+    {
+        float chargePercent = chargeTime / maxChargeTime;
+        float jumpForce = Mathf.Lerp(minJumpForce, maxJumpForce, chargePercent);
+
+        Vector2 direction = mouseDirection(); // Get the direction toward the mouse
+        float gravity = Physics2D.gravity.y * rb.gravityScale; // Get gravity from Rigidbody2D
+        float timeToApex = jumpForce / -gravity; // Time to reach the highest point
+        float totalFlightTime = timeToApex * 2; // Total flight time (up and down)
+
+        // Predict the landing position based on physics
+        Vector2 predictedLandingPosition = (Vector2)transform.position + direction * jumpForce * totalFlightTime;
+        return predictedLandingPosition;
+    }
+
+    // Destroy the aiming arrow
+    void DestroyAimArrow()
+    {
+        if (currentAimArrow != null)
+        {
+            Destroy(currentAimArrow);
         }
     }
 }
