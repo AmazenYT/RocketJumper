@@ -1,2 +1,14 @@
 fileFormatVersion: 2
 guid: 0748a98193226974b8683097e609e5b0
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - rb: {instanceID: 0}
+  - aimArrowPrefab: {instanceID: 0}
+  - jumpSound: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

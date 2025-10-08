@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -13,6 +14,8 @@ public class PlayerMovement : MonoBehaviour
     public GameObject aimArrowPrefab; // Reference to the aiming arrow prefab
     private GameObject currentAimArrow; // Reference to the currently active aiming arrow
     public float distanceFromPlayer = 1f; // Distance to spawn the aiming indicator in front of the player
+    
+    public AudioClip jumpSound; //Sound triggered on jump
 
     void Start()
     {
@@ -43,9 +46,11 @@ public class PlayerMovement : MonoBehaviour
         {
             Jump();
             isCharging = false;
+            AudioSource.PlayClipAtPoint(jumpSound, transform.position); // Play jump sound
 
             // Destroy the aiming indicator
             DestroyAimArrow();
+
         }
     }
 
