@@ -1,7 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Events;
-using UnityEngine.Android;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class PauseMenu : MonoBehaviour
 {
@@ -20,6 +21,18 @@ public class PauseMenu : MonoBehaviour
             closePauseMenu.Invoke();
             paused = false;
         }
+
+    }
+
+    public void resumeGame()
+    {
+        paused = false;
+    }
+
+    public void reloadLevel()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        paused = false;
     }
 
 
