@@ -125,6 +125,11 @@ public class PlayerMovement : MonoBehaviour
 
             // Rotate the indicator to face the predicted landing position
             currentAimArrow.transform.eulerAngles = new Vector3(0, 0, angle);
+
+            float chargePercent = chargeTime / maxChargeTime;
+            float scale = Mathf.Lerp(0.2f, 0.5f, chargePercent);
+            currentAimArrow.transform.localScale = new Vector3(scale, scale, 1f); 
+            //this is to make the arrow grow in size as the jump is charged
         }
     }
 
