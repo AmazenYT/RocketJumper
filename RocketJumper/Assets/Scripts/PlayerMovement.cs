@@ -15,7 +15,7 @@ public class PlayerMovement : MonoBehaviour
     private GameObject currentAimArrow; // Reference to the currently active aiming arrow
     public float distanceFromPlayer = 1f; // Distance to spawn the aiming indicator in front of the player
     
-    public AudioClip jumpSound; //Sound triggered on jump
+    public AudioSource jumpSound; //Sound triggered on jump
 
     void Start()
     {
@@ -46,7 +46,7 @@ public class PlayerMovement : MonoBehaviour
         {
             Jump();
             isCharging = false;
-            AudioSource.PlayClipAtPoint(jumpSound, transform.position); // Play jump sound
+            jumpSound.Play(); // Play jump sound
 
             // Destroy the aiming indicator
             DestroyAimArrow();
