@@ -14,8 +14,13 @@ public class PlayerMovement : MonoBehaviour
     public GameObject aimArrowPrefab; // Reference to the aiming arrow prefab
     private GameObject currentAimArrow; // Reference to the currently active aiming arrow
     public float distanceFromPlayer = 1f; // Distance to spawn the aiming indicator in front of the player
-    
+
     public AudioSource jumpSound; //Sound triggered on jump
+    public Animator animator;
+    public string paramIsGrounded = "isGrounded";
+    public string paramIsCharging = "isCharging";
+    public string paramSpeed = "Speed";
+    public string paramJumpTrigger = "Jump";
 
     void Start()
     {
@@ -52,6 +57,10 @@ public class PlayerMovement : MonoBehaviour
             DestroyAimArrow();
 
         }
+
+        
+
+       
     }
 
     // Method to calculate the direction of the mouse relative to the player
@@ -74,6 +83,22 @@ public class PlayerMovement : MonoBehaviour
 
         rb.linearVelocity = Vector2.zero; // Reset velocity before applying the jump force
         rb.AddForce(direction * jumpForce, ForceMode2D.Impulse);
+
+        if (direction.x < 0) // Jumping to the left
+        {
+            transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+        }
+        else if (direction.x > 0) // Jumping to the right
+        {
+            transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+        }
+
+         if (animator != null)
+        {
+            animator.SetTrigger(paramJumpTrigger);
+            animator.SetBool(paramIsGrounded, false);
+        }
+    
     }
 
     // Detect when the player lands on the ground
@@ -83,6 +108,8 @@ public class PlayerMovement : MonoBehaviour
         {
             isGrounded = true; // Player is on the ground
         }
+        if (animator != null)
+            animator.SetBool(paramIsGrounded, true);
     }
 
     // Detect when the player leaves the ground
@@ -92,6 +119,9 @@ public class PlayerMovement : MonoBehaviour
         {
             isGrounded = false; // Player is not on the ground
         }
+        if (animator != null)
+                animator.SetBool(paramIsGrounded, false);
+        
     }
 
     // Create the aiming arrow

@@ -207,6 +207,11 @@ MonoBehaviour:
   aimArrowPrefab: {fileID: 3445042781252009278, guid: 42062149cb55c5c4dac30050b1a96356, type: 3}
   distanceFromPlayer: 1
   jumpSound: {fileID: 6700978584717433341}
+  animator: {fileID: 5885480757903884375}
+  paramIsGrounded: isGrounded
+  paramIsCharging: isCharging
+  paramSpeed: Speed
+  paramJumpTrigger: Jump
 --- !u!82 &6700978584717433341
 AudioSource:
   m_ObjectHideFlags: 0
