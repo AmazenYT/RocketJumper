@@ -84,14 +84,7 @@ public class PlayerMovement : MonoBehaviour
         rb.linearVelocity = Vector2.zero; // Reset velocity before applying the jump force
         rb.AddForce(direction * jumpForce, ForceMode2D.Impulse);
 
-        if (direction.x < 0) // Jumping to the left
-        {
-            transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-        }
-        else if (direction.x > 0) // Jumping to the right
-        {
-            transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-        }
+        
 
          if (animator != null)
         {
