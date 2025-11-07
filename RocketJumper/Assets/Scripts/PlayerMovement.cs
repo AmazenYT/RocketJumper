@@ -15,7 +15,7 @@ public class PlayerMovement : MonoBehaviour
     private GameObject currentAimArrow; // Reference to the currently active aiming arrow
     public float distanceFromPlayer = 1f; // Distance to spawn the aiming indicator in front of the player
 
-    public AudioSource jumpSound; //Sound triggered on jump
+    public AudioSource jumpSound; // Sound triggered on jump
     public Animator animator;
     public string paramIsGrounded = "isGrounded";
     public string paramIsCharging = "isCharging";
@@ -43,7 +43,7 @@ public class PlayerMovement : MonoBehaviour
             chargeTime += Time.deltaTime;
             chargeTime = Mathf.Clamp(chargeTime, 0f, maxChargeTime);
 
-            // Update the aiming indicator's position and rotation
+            // Update the aiming indicator's position and rotation (via the indicator's API)
             UpdateAimArrow();
         }
 
@@ -51,16 +51,11 @@ public class PlayerMovement : MonoBehaviour
         {
             Jump();
             isCharging = false;
-            jumpSound.Play(); // Play jump sound
+            if (jumpSound != null) jumpSound.Play(); // Play jump sound if assigned
 
             // Destroy the aiming indicator
             DestroyAimArrow();
-
         }
-
-        
-
-       
     }
 
     // Method to calculate the direction of the mouse relative to the player
@@ -81,17 +76,27 @@ public class PlayerMovement : MonoBehaviour
         float jumpForce = Mathf.Lerp(minJumpForce, maxJumpForce, chargePercent);
         // Calculate the jump force based on charge time
 
-        rb.linearVelocity = Vector2.zero; // Reset velocity before applying the jump force
-        rb.AddForce(direction * jumpForce, ForceMode2D.Impulse);
+        // Reset velocity before applying the jump force (use linearVelocity)
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.AddForce(direction * jumpForce, ForceMode2D.Impulse);
+        }
 
-        
-
-         if (animator != null)
+        if (animator != null)
         {
             animator.SetTrigger(paramJumpTrigger);
             animator.SetBool(paramIsGrounded, false);
         }
-    
+
+        if (direction.x < 0) // Jumping to the left
+        {
+            transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+        }
+        else if (direction.x > 0) // Jumping to the right
+        {
+            transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+        }
     }
 
     // Detect when the player lands on the ground
@@ -113,11 +118,10 @@ public class PlayerMovement : MonoBehaviour
             isGrounded = false; // Player is not on the ground
         }
         if (animator != null)
-                animator.SetBool(paramIsGrounded, false);
-        
+            animator.SetBool(paramIsGrounded, false);
     }
 
-    // Create the aiming arrow
+    // Create the aiming arrow (as a child so it stays with the player)
     void CreateAimArrow()
     {
         // Destroy the current indicator if it exists
@@ -129,30 +133,47 @@ public class PlayerMovement : MonoBehaviour
         // Create a new aiming indicator
         if (aimArrowPrefab != null)
         {
-            currentAimArrow = Instantiate(aimArrowPrefab, transform.position, Quaternion.identity);
-            currentAimArrow.transform.SetParent(transform); // Attach to the player
+            currentAimArrow = Instantiate(aimArrowPrefab, transform.position + Vector3.right * distanceFromPlayer, Quaternion.identity);
+            currentAimArrow.transform.SetParent(transform); // Attach to the player (keep as child)
+
+            // Ensure the indicator script is present (it will be used to position/rotate/scale)
+            var ai = currentAimArrow.GetComponent<AimingIndicator>();
+            if (ai == null)
+            {
+                Debug.LogWarning("Aim arrow prefab is missing AimingIndicator script. Adding one automatically.");
+                currentAimArrow.AddComponent<AimingIndicator>();
+            }
         }
     }
 
-    // Update the aiming arrow's position and rotation
+    // Update the aiming arrow's position and rotation by sending direction & scale to the child indicator
     void UpdateAimArrow()
     {
-        if (currentAimArrow != null)
+        if (currentAimArrow == null) return;
+
+        Vector2 predictedLandingPosition = PredictLandingPosition(); // Get the predicted landing position
+        Vector2 direction = (predictedLandingPosition - (Vector2)transform.position).normalized; // Direction toward the landing position
+
+        // scale for charge indication
+        float chargePercent = chargeTime / maxChargeTime;
+        float scale = Mathf.Lerp(0.2f, 0.5f, chargePercent);
+
+        // Send the direction + distance + scale to the child's AimingIndicator script
+        var ai = currentAimArrow.GetComponent<AimingIndicator>();
+        if (ai != null)
         {
-            Vector2 predictedLandingPosition = PredictLandingPosition(); // Get the predicted landing position
-            Vector2 direction = (predictedLandingPosition - (Vector2)transform.position).normalized; // Direction toward the landing position
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg; // Calculate the angle in degrees
-
-            // Position the indicator at the predicted landing position
-            currentAimArrow.transform.position = predictedLandingPosition;
-
-            // Rotate the indicator to face the predicted landing position
-            currentAimArrow.transform.eulerAngles = new Vector3(0, 0, angle);
-
-            float chargePercent = chargeTime / maxChargeTime;
-            float scale = Mathf.Lerp(0.2f, 0.5f, chargePercent);
-            currentAimArrow.transform.localScale = new Vector3(scale, scale, 1f); 
-            //this is to make the arrow grow in size as the jump is charged
+            ai.SetFromWorldDirection(direction, distanceFromPlayer, scale);
+        }
+        else
+        {
+            // fallback: if indicator missing, position directly (rare)
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            float rad = angle * Mathf.Deg2Rad;
+            currentAimArrow.transform.localPosition = new Vector3(distanceFromPlayer * Mathf.Cos(rad),
+                                                                  distanceFromPlayer * Mathf.Sin(rad),
+                                                                  0f);
+            currentAimArrow.transform.localEulerAngles = new Vector3(0f, 0f, angle);
+            currentAimArrow.transform.localScale = new Vector3(scale, scale, 1f);
         }
     }
 
