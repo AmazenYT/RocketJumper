@@ -28,35 +28,33 @@ public class PlayerMovement : MonoBehaviour
     }
 
     void Update()
+{
+    // Start charging
+    if ((Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Mouse0)) && isGrounded)
     {
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded) // Start charging the jump
-        {
-            chargeTime = 0f;
-            isCharging = true;
-
-            // Create the aiming indicator
-            CreateAimArrow();
-        }
-
-        if (Input.GetKey(KeyCode.Space) && isCharging && isGrounded) // Charge the jump
-        {
-            chargeTime += Time.deltaTime;
-            chargeTime = Mathf.Clamp(chargeTime, 0f, maxChargeTime);
-
-            // Update the aiming indicator's position and rotation (via the indicator's API)
-            UpdateAimArrow();
-        }
-
-        if (Input.GetKeyUp(KeyCode.Space) && isCharging && isGrounded) // Release the jump
-        {
-            Jump();
-            isCharging = false;
-            if (jumpSound != null) jumpSound.Play(); // Play jump sound if assigned
-
-            // Destroy the aiming indicator
-            DestroyAimArrow();
-        }
+        chargeTime = 0f;
+        isCharging = true;
+        CreateAimArrow();
     }
+
+    // Charging
+    if ((Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Mouse0)) && isCharging && isGrounded)
+    {
+        chargeTime += Time.deltaTime;
+        chargeTime = Mathf.Clamp(chargeTime, 0f, maxChargeTime);
+        UpdateAimArrow();
+    }
+
+    // Release jump
+    if ((Input.GetKeyUp(KeyCode.Space) || Input.GetKeyUp(KeyCode.Mouse0)) && isCharging && isGrounded)
+    {
+        Jump();
+        isCharging = false;
+        if (jumpSound != null) jumpSound.Play();
+        DestroyAimArrow();
+    }
+}
+
 
     // Method to calculate the direction of the mouse relative to the player
     Vector2 mouseDirection()
