@@ -1,104 +1,120 @@
 using System;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class PlayerMovement : MonoBehaviour
 {
-    public Rigidbody2D rb; // Rigidbody 2D component of the character
-    public float minJumpForce = 5f; // The weakest jump possible
-    public float maxJumpForce = 15f; // The strongest jump possible
-    public float chargeTime = 0f; // The ability to charge the jump
-    public float maxChargeTime = 3f; // The amount of time it will take to charge the jump
-    private bool isCharging = false; // Whether the player is charging the jump
-    private bool isGrounded = false; // Whether the player is standing on the ground
-    public GameObject aimArrowPrefab; // Reference to the aiming arrow prefab
-    private GameObject currentAimArrow; // Reference to the currently active aiming arrow
-    public float distanceFromPlayer = 1f; // Distance to spawn the aiming indicator in front of the player
-    public ParticleSystem chargeEffect; // Particle effect for charging
-    public float armParticleMinRate = 0f;
-    public float armParticleMaxRate = 50f;
-    public AudioSource jumpSound; // Sound triggered on jump
+    [Header("Movement & Jump Settings")]
+    public Rigidbody2D rb; 
+    public float minJumpForce = 5f; 
+    public float maxJumpForce = 15f; 
+    public float chargeTime = 0f; 
+    public float maxChargeTime = 3f; 
+    private bool isCharging = false; 
+    private bool isGrounded = false; 
+
+    [Header("Aiming")]
+    public GameObject aimArrowPrefab; 
+    private GameObject currentAimArrow; 
+    public float distanceFromPlayer = 1f; 
+
+    [Header("Audio & Animation")]
+    public AudioSource jumpSound; 
     public Animator animator;
     public string paramIsGrounded = "isGrounded";
     public string paramIsCharging = "isCharging";
     public string paramSpeed = "Speed";
     public string paramJumpTrigger = "Jump";
 
+    [Header("Charge Glow")]
+    public GameObject chargeGlow;           // Assign your glow sprite in the Inspector
+    public Vector3 baseGlowScale = Vector3.one;
+    public float maxGlowScale = 1.5f;
+    public float maxGlowShake = 0.05f;
+
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>(); // Assign Rigidbody2D component
+        rb = GetComponent<Rigidbody2D>();
+        if (chargeGlow != null)
+            chargeGlow.SetActive(false); // Hide glow initially
     }
 
     void Update()
-{
-    // Start charging
-    if ((Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Mouse0)) && isGrounded)
     {
-        chargeTime = 0f;
-        isCharging = true;
-        CreateAimArrow();
+        // Start charging
+        if ((Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Mouse0)) && isGrounded)
+        {
+            chargeTime = 0f;
+            isCharging = true;
+            CreateAimArrow();
 
-    if (chargeEffect != null)
+            if (chargeGlow != null)
             {
-                var em = chargeEffect.emission;
-                em.enabled = true;
-                chargeEffect.Play();
+                chargeGlow.SetActive(true);
+                chargeGlow.transform.localScale = baseGlowScale;
             }
+
+            if (animator != null)
+                animator.SetBool(paramIsCharging, true);
+        }
+
+        // Charging
+        if ((Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Mouse0)) && isCharging && isGrounded)
+        {
+            chargeTime += Time.deltaTime;
+            chargeTime = Mathf.Clamp(chargeTime, 0f, maxChargeTime);
+            UpdateAimArrow();
+
+            if (chargeGlow != null)
+            {
+                float chargePercent = chargeTime / maxChargeTime;
+
+                // Scale up
+                float scale = Mathf.Lerp(baseGlowScale.x, maxGlowScale, chargePercent);
+                chargeGlow.transform.localScale = new Vector3(scale, scale, 1f);
+
+                // Shake
+                float jitter = Mathf.Lerp(0f, maxGlowShake, chargePercent);
+                chargeGlow.transform.localPosition = new Vector3(
+                    UnityEngine.Random.Range(-jitter, jitter),
+                    UnityEngine.Random.Range(-jitter, jitter),
+                    chargeGlow.transform.localPosition.z
+                );
+            }
+        }
+
+        // Release jump
+        if ((Input.GetKeyUp(KeyCode.Space) || Input.GetKeyUp(KeyCode.Mouse0)) && isCharging && isGrounded)
+        {
+            Jump();
+            isCharging = false;
+            if (jumpSound != null) jumpSound.Play();
+            DestroyAimArrow();
+
+            if (chargeGlow != null)
+            {
+                chargeGlow.SetActive(false);
+                chargeGlow.transform.localScale = baseGlowScale;
+                chargeGlow.transform.localPosition = Vector3.zero;
+            }
+
+            if (animator != null)
+                animator.SetBool(paramIsCharging, false);
+        }
     }
 
-    // Charging
-    if ((Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Mouse0)) && isCharging && isGrounded)
-    {
-        chargeTime += Time.deltaTime;
-        chargeTime = Mathf.Clamp(chargeTime, 0f, maxChargeTime);
-        UpdateAimArrow();
-
-        if (chargeEffect != null)
-            {
-                float t = (maxChargeTime > 0f) ? (chargeTime / maxChargeTime) : 0f;
-                float rate = Mathf.Lerp(armParticleMinRate, armParticleMaxRate, t);
-                var em = chargeEffect.emission;
-                em.rateOverTime = new ParticleSystem.MinMaxCurve(rate);
-            }
-    }
-
-    // Release jump
-    if ((Input.GetKeyUp(KeyCode.Space) || Input.GetKeyUp(KeyCode.Mouse0)) && isCharging && isGrounded)
-    {
-        Jump();
-        isCharging = false;
-        if (jumpSound != null) jumpSound.Play();
-        DestroyAimArrow();
-
-        if (chargeEffect != null)
-            {
-                chargeEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-                var em = chargeEffect.emission;
-                em.rateOverTime = new ParticleSystem.MinMaxCurve(armParticleMinRate);
-            }
-    }
-}
-
-
-    // Method to calculate the direction of the mouse relative to the player
     Vector2 mouseDirection()
     {
-        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition); // Get mouse position in world space as Vector2
-        Vector2 playerPos = transform.position; // Get player position as Vector2
-        Vector2 direction = (mousePos - playerPos).normalized; // Normalize to get only the direction
-        return direction;
+        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Vector2 playerPos = transform.position;
+        return (mousePos - playerPos).normalized;
     }
 
-    // Method to handle the jump logic
     void Jump()
     {
-        Vector2 direction = mouseDirection(); // Use the mouseDirection method to get the direction
-
+        Vector2 direction = mouseDirection();
         float chargePercent = chargeTime / maxChargeTime;
         float jumpForce = Mathf.Lerp(minJumpForce, maxJumpForce, chargePercent);
-        // Calculate the jump force based on charge time
 
-        // Reset velocity before applying the jump force (use linearVelocity)
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
@@ -111,84 +127,59 @@ public class PlayerMovement : MonoBehaviour
             animator.SetBool(paramIsGrounded, false);
         }
 
-        if (direction.x < 0) // Jumping to the left
-        {
+        // Flip character
+        if (direction.x < 0)
             transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-        }
-        else if (direction.x > 0) // Jumping to the right
-        {
+        else if (direction.x > 0)
             transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-        }
     }
 
-    // Detect when the player lands on the ground
     void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Ground"))
-        {
-            isGrounded = true; // Player is on the ground
-        }
+            isGrounded = true;
+
         if (animator != null)
             animator.SetBool(paramIsGrounded, true);
     }
 
-    // Detect when the player leaves the ground
     void OnCollisionExit2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Ground"))
-        {
-            isGrounded = false; // Player is not on the ground
-        }
+            isGrounded = false;
+
         if (animator != null)
             animator.SetBool(paramIsGrounded, false);
     }
 
-    // Create the aiming arrow (as a child so it stays with the player)
     void CreateAimArrow()
     {
-        // Destroy the current indicator if it exists
-        if (currentAimArrow != null)
-        {
-            Destroy(currentAimArrow);
-        }
+        if (currentAimArrow != null) Destroy(currentAimArrow);
 
-        // Create a new aiming indicator
         if (aimArrowPrefab != null)
         {
             currentAimArrow = Instantiate(aimArrowPrefab, transform.position + Vector3.right * distanceFromPlayer, Quaternion.identity);
-            currentAimArrow.transform.SetParent(transform); // Attach to the player (keep as child)
+            currentAimArrow.transform.SetParent(transform);
 
-            // Ensure the indicator script is present (it will be used to position/rotate/scale)
             var ai = currentAimArrow.GetComponent<AimingIndicator>();
-            if (ai == null)
-            {
-                Debug.LogWarning("Aim arrow prefab is missing AimingIndicator script. Adding one automatically.");
-                currentAimArrow.AddComponent<AimingIndicator>();
-            }
+            if (ai == null) currentAimArrow.AddComponent<AimingIndicator>();
         }
     }
 
-    // Update the aiming arrow's position and rotation by sending direction & scale to the child indicator
     void UpdateAimArrow()
     {
         if (currentAimArrow == null) return;
 
-        Vector2 predictedLandingPosition = PredictLandingPosition(); // Get the predicted landing position
-        Vector2 direction = (predictedLandingPosition - (Vector2)transform.position).normalized; // Direction toward the landing position
-
-        // scale for charge indication
+        Vector2 predictedLandingPosition = PredictLandingPosition();
+        Vector2 direction = (predictedLandingPosition - (Vector2)transform.position).normalized;
         float chargePercent = chargeTime / maxChargeTime;
         float scale = Mathf.Lerp(0.2f, 0.5f, chargePercent);
 
-        // Send the direction + distance + scale to the child's AimingIndicator script
         var ai = currentAimArrow.GetComponent<AimingIndicator>();
         if (ai != null)
-        {
             ai.SetFromWorldDirection(direction, distanceFromPlayer, scale);
-        }
         else
         {
-            // fallback: if indicator missing, position directly (rare)
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             float rad = angle * Mathf.Deg2Rad;
             currentAimArrow.transform.localPosition = new Vector3(distanceFromPlayer * Mathf.Cos(rad),
@@ -199,35 +190,28 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // Predict the landing position based on jump force and trajectory
     Vector2 PredictLandingPosition()
     {
         float chargePercent = chargeTime / maxChargeTime;
         float jumpForce = Mathf.Lerp(minJumpForce, maxJumpForce, chargePercent);
 
-        Vector2 direction = mouseDirection(); // Get the direction toward the mouse
-        float gravity = Physics2D.gravity.y * rb.gravityScale; // Get gravity from Rigidbody2D
-        float timeToApex = jumpForce / -gravity; // Time to reach the highest point
-        float totalFlightTime = timeToApex * 2; // Total flight time (up and down)
+        Vector2 direction = mouseDirection();
+        float gravity = Physics2D.gravity.y * rb.gravityScale;
+        float timeToApex = jumpForce / -gravity;
+        float totalFlightTime = timeToApex * 2;
 
-        // Predict the landing position based on physics
-        Vector2 predictedLandingPosition = (Vector2)transform.position + direction * jumpForce * totalFlightTime;
-        return predictedLandingPosition;
+        return (Vector2)transform.position + direction * jumpForce * totalFlightTime;
     }
 
-    // Destroy the aiming arrow
     void DestroyAimArrow()
     {
-        if (currentAimArrow != null)
-        {
-            Destroy(currentAimArrow);
-        }
+        if (currentAimArrow != null) Destroy(currentAimArrow);
 
-        if (chargeEffect != null)
+        if (chargeGlow != null)
         {
-            chargeEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
-            var em = chargeEffect.emission;
-            em.rateOverTime = new ParticleSystem.MinMaxCurve(armParticleMinRate);
+            chargeGlow.SetActive(false);
+            chargeGlow.transform.localScale = baseGlowScale;
+            chargeGlow.transform.localPosition = Vector3.zero;
         }
     }
 }
