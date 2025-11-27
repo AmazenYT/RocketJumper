@@ -14,7 +14,9 @@ public class PlayerMovement : MonoBehaviour
     public GameObject aimArrowPrefab; // Reference to the aiming arrow prefab
     private GameObject currentAimArrow; // Reference to the currently active aiming arrow
     public float distanceFromPlayer = 1f; // Distance to spawn the aiming indicator in front of the player
-
+    public ParticleSystem chargeEffect; // Particle effect for charging
+    public float armParticleMinRate = 0f;
+    public float armParticleMaxRate = 50f;
     public AudioSource jumpSound; // Sound triggered on jump
     public Animator animator;
     public string paramIsGrounded = "isGrounded";
@@ -35,6 +37,13 @@ public class PlayerMovement : MonoBehaviour
         chargeTime = 0f;
         isCharging = true;
         CreateAimArrow();
+
+    if (chargeEffect != null)
+            {
+                var em = chargeEffect.emission;
+                em.enabled = true;
+                chargeEffect.Play();
+            }
     }
 
     // Charging
@@ -43,6 +52,14 @@ public class PlayerMovement : MonoBehaviour
         chargeTime += Time.deltaTime;
         chargeTime = Mathf.Clamp(chargeTime, 0f, maxChargeTime);
         UpdateAimArrow();
+
+        if (chargeEffect != null)
+            {
+                float t = (maxChargeTime > 0f) ? (chargeTime / maxChargeTime) : 0f;
+                float rate = Mathf.Lerp(armParticleMinRate, armParticleMaxRate, t);
+                var em = chargeEffect.emission;
+                em.rateOverTime = new ParticleSystem.MinMaxCurve(rate);
+            }
     }
 
     // Release jump
@@ -52,6 +69,13 @@ public class PlayerMovement : MonoBehaviour
         isCharging = false;
         if (jumpSound != null) jumpSound.Play();
         DestroyAimArrow();
+
+        if (chargeEffect != null)
+            {
+                chargeEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                var em = chargeEffect.emission;
+                em.rateOverTime = new ParticleSystem.MinMaxCurve(armParticleMinRate);
+            }
     }
 }
 
@@ -197,6 +221,13 @@ public class PlayerMovement : MonoBehaviour
         if (currentAimArrow != null)
         {
             Destroy(currentAimArrow);
+        }
+
+        if (chargeEffect != null)
+        {
+            chargeEffect.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            var em = chargeEffect.emission;
+            em.rateOverTime = new ParticleSystem.MinMaxCurve(armParticleMinRate);
         }
     }
 }
