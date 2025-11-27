@@ -4,6 +4,7 @@ public class AimingIndicator : MonoBehaviour
 {
     [Tooltip("Distance from player (local) where the arrow should sit.")]
     public float distanceFromPlayer = 1f;
+    
 
     // This method is called by PlayerMovement every frame the arrow should update.
     // worldDirection: a normalized world-space direction vector pointing toward the target/landing.

@@ -4967,7 +4967,7 @@ PrefabInstance:
     - target: {fileID: 4398760166058449347, guid: 9178b75ea43d47d43924a9723256a827, type: 3}
       propertyPath: aimArrowPrefab
       value: 
-      objectReference: {fileID: 1572134148598492217, guid: 7186ea852895f7e4fb3d5c85372f4689, type: 3}
+      objectReference: {fileID: 1420458069424802083, guid: af2e97f95be03e545a33cc9750941c7a, type: 3}
     - target: {fileID: 4398760166058449347, guid: 9178b75ea43d47d43924a9723256a827, type: 3}
       propertyPath: baseGlowScale.x
       value: 0.39012
@@ -4986,7 +4986,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8780949696220587372, guid: 9178b75ea43d47d43924a9723256a827, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -2.43
       objectReference: {fileID: 0}
     - target: {fileID: 8780949696220587372, guid: 9178b75ea43d47d43924a9723256a827, type: 3}
       propertyPath: m_LocalPosition.z
