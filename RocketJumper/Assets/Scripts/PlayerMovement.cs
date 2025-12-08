@@ -56,6 +56,14 @@ public class PlayerMovement : MonoBehaviour
             if (animator != null)
                 animator.SetBool(paramIsCharging, true);
         }
+        else
+        {
+            if (Input.GetKeyDown(KeyCode.Mouse1))
+            {
+                isCharging = false;
+                DestroyAimArrow();
+            }
+        }
 
         // Charging
         if ((Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.Mouse0)) && isCharging && isGrounded)

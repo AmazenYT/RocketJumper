@@ -16,7 +16,7 @@ public class PlayerCamera : MonoBehaviour
         HandleCameraPanning();
 
         // Follow the player with the panning offset applied
-        Vector3 targetPosition = new Vector3(player.position.x, player.position.y, transform.position.z) + panOffset;
+        Vector3 targetPosition = new Vector3(player.position.x, player.position.y + 1.5f, transform.position.z) + panOffset;
         transform.position = Vector3.Lerp(transform.position, targetPosition, Time.fixedDeltaTime * followSpeed);
     }
 
@@ -29,10 +29,6 @@ public class PlayerCamera : MonoBehaviour
         if (Input.GetKey(KeyCode.UpArrow))
         {
             panOffset += new Vector3(0, panDistance, 0); // Pan upward
-        }
-        if (Input.GetKey(KeyCode.DownArrow))
-        {
-            panOffset += new Vector3(0, -panDistance, 0); // Pan downward
         }
         if (Input.GetKey(KeyCode.LeftArrow))
         {
