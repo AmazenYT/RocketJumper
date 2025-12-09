@@ -13,12 +13,14 @@ public class PauseMenu : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape) && paused == false)
         {
             openPauseMenu.Invoke();
+            Time.timeScale = 0f;
             paused = true;
         }
 
         else if (Input.GetKeyDown(KeyCode.Escape) && paused == true)
         {
             closePauseMenu.Invoke();
+            Time.timeScale = 1f;
             paused = false;
         }
 
@@ -26,14 +28,21 @@ public class PauseMenu : MonoBehaviour
 
     public void resumeGame()
     {
+        closePauseMenu.Invoke();
+        Time.timeScale = 1f;
         paused = false;
     }
 
     public void reloadLevel()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        Time.timeScale = 1f;
         paused = false;
     }
 
+    public void exitGame()
+    {
+        Application.Quit();
+    }
 
 }
